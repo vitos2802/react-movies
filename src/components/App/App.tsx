@@ -11,7 +11,7 @@ import toast, { Toaster } from 'react-hot-toast';
 import { fetchMovies } from '../../services/movieService';
 import type { Movie } from '../../types/movie';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 function App() {
   const [query, setQuery] = useState<string>('');
@@ -31,25 +31,17 @@ function App() {
 
   const { data, isLoading, isError, isSuccess } = useQuery({
     queryKey: ['movies', query, currentPage],
-
-    queryFn: async () => {
-      try {
-        const result = await fetchMovies(query, currentPage);
-        console.log(result);
-        if (result.results.length === 0 && query !== '') {
-          toast.error('No movies found for your request.');
-        }
-
-        return result; // Повертаємо весь об'єкт
-      } catch (error) {
-        toast.error('Something went wrong. Please try again later.');
-        console.error(error);
-        throw error;
-      }
-    },
+    queryFn: () => fetchMovies(query, currentPage), // Спрощена queryFn
     enabled: !!query,
     placeholderData: keepPreviousData,
   });
+
+  // Використовуємо useEffect для обробки побічних ефектів після успішного запиту
+  useEffect(() => {
+    if (isSuccess && data?.results.length === 0 && query !== '') {
+      toast.error('No movies found for your request.');
+    }
+  }, [isSuccess, data, query]);
 
   const movies = data?.results || [];
   const totalPages = data?.total_pages || 0;
